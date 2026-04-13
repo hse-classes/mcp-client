@@ -1,14 +1,11 @@
 spring:
   application:
     name: mcp-client
-
   main:
     web-application-type: none
-
   shell:
     interactive:
       enabled: true
-
   ai:
     openai:
       api-key: ${GEMINI_API_KEY}
@@ -17,14 +14,12 @@ spring:
         options:
           model: gemini-2.5-flash
           temperature: 0.7
-
     mcp:
       client:
         sse:
           connections:
             student-server:
-              url:  http://localhost:8080 # OHNE /mcp/sse!
-
+              url: http://localhost:8080
 logging:
   level:
     kmo.dev: DEBUG

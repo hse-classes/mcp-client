@@ -11,9 +11,6 @@ import org.springframework.shell.standard.ShellOption;
 
 import java.util.List;
 
-/**
- * Spring Shell Commands für die Chat-Interaktion mit dem AI-Modell.
- */
 @ShellComponent
 @RequiredArgsConstructor
 public class ChatCommands {
