@@ -1,10 +1,6 @@
 spring:
   application:
     name: mcp-client
-  main:
-    web-application-type: none
-    # Banner and startup logs would drown out the console chat.
-    banner-mode: off
   ai:
     google:
       genai:
@@ -13,13 +9,26 @@ spring:
           model: gemini-3.6-flash
     mcp:
       client:
+        # Connect on first use instead of at startup, so the app also starts
+        # (and the login page works) while the MCP server is still booting.
+        initialized: false
         streamable-http:
           connections:
             student-server:
-              url: http://localhost:8080
-              # Must match the server's endpoint (default: /mcp).
+              url: ${MCP_SERVER_URL:http://localhost:8080}
               endpoint: /mcp
+
+# Behind Traefik: trust X-Forwarded-* so rate limiting sees the real client IP.
+server:
+  forward-headers-strategy: framework
+  port: ${PORT:8081}
+
+# One shared login. CHAT_PASSWORD_HASH must be a bcrypt hash, never plaintext.
+chat:
+  username: ${CHAT_USERNAME:}
+  password-hash: ${CHAT_PASSWORD_HASH:}
+
 logging:
   level:
     kmo.dev: DEBUG
-    org.springframework.ai.mcp: DEBUG
+    org.springframework.ai.mcp: INFO
