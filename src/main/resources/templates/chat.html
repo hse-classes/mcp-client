@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <title>MCP Chat</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<header>
+    <h1>MCP Chat</h1>
+    <form method="post" th:action="@{/logout}"><button type="submit">Abmelden</button></form>
+</header>
+<main>
+    <section>
+        <h2>Chat</h2>
+        <div class="scroll" id="messages">
+            <p class="hint">Frag zum Beispiel: „Wie viele Studenten gibt es pro Studiengang?“ oder „Wer hat die Matrikelnummer 12348?“</p>
+        </div>
+        <form class="send" id="form">
+            <input id="input" type="text" maxlength="1000" placeholder="Nachricht…" autocomplete="off" required>
+            <button class="primary" id="send" type="submit">Senden</button>
+        </form>
+    </section>
+    <section>
+        <h2>Tool-Aufrufe am MCP Server</h2>
+        <div class="scroll" id="calls">
+            <p class="hint" id="calls-hint">Hier erscheint, welche Tools das Modell beim MCP Server aufgerufen hat, mit Argumenten und Ergebnis.</p>
+        </div>
+    </section>
+</main>
+<script>
+const csrfToken = document.querySelector('meta[name=_csrf]').content;
+const csrfHeader = document.querySelector('meta[name=_csrf_header]').content;
+const messages = document.getElementById('messages');
+const calls = document.getElementById('calls');
+const form = document.getElementById('form');
+const input = document.getElementById('input');
+const send = document.getElementById('send');
+
+function add(parent, className, text) {
+  const el = document.createElement('div');
+  el.className = className;
+  el.textContent = text;
+  parent.appendChild(el);
+  parent.scrollTop = parent.scrollHeight;
+  return el;
+}
+
+function addCall(call) {
+  const el = document.createElement('div');
+  el.className = 'call';
+  const name = document.createElement('b');
+  name.textContent = call.tool;
+  el.appendChild(name);
+  for (const text of [call.arguments, call.result]) {
+    const pre = document.createElement('pre');
+    pre.textContent = text;
+    el.appendChild(pre);
+  }
+  calls.appendChild(el);
+  calls.scrollTop = calls.scrollHeight;
+}
+
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  send.disabled = true;
+  add(messages, 'msg user', text);
+  const pending = add(messages, 'msg bot', 'Denke nach…');
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', [csrfHeader]: csrfToken},
+      body: JSON.stringify({message: text})
+    });
+    if (!response.ok) {
+      const known = {429: 'Zu viele Anfragen, bitte kurz warten.', 409: 'Die vorherige Frage wird noch beantwortet.'};
+      throw new Error(known[response.status] || 'Fehler (' + response.status + ').');
+    }
+    const data = await response.json();
+    pending.textContent = data.answer;
+    if (data.toolCalls.length) document.getElementById('calls-hint')?.remove();
+    data.toolCalls.forEach(addCall);
+  } catch (error) {
+    pending.textContent = error.message;
+    pending.classList.add('error');
+  } finally {
+    send.disabled = false;
+    input.focus();
+    messages.scrollTop = messages.scrollHeight;
+  }
+});
+</script>
+</body>
+</html>
