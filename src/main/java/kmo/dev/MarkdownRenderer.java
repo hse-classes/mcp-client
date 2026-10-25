@@ -32,6 +32,9 @@ public class MarkdownRenderer {
     private static class DropImages extends AbstractVisitor {
         @Override
         public void visit(Image image) {
+            // Images can nest in the alt text: clean those first, before the children
+            // are promoted into the surrounding paragraph where nobody visits them again.
+            visitChildren(image);
             Node child = image.getFirstChild();
             while (child != null) {
                 Node next = child.getNext();
