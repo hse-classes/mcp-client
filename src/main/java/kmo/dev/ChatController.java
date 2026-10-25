@@ -29,18 +29,20 @@ public class ChatController {
     public record ChatRequest(String message) {
     }
 
-    public record ChatResponse(String answer, List<ToolCall> toolCalls) {
+    public record ChatResponse(String answerHtml, List<ToolCall> toolCalls) {
     }
 
     private final ChatClient chatClient;
     private final ToolCallbackProvider mcpTools;
+    private final MarkdownRenderer markdown;
     // Sessions with a question still being answered. The chat memory is not safe for
     // two overlapping turns of one conversation (e.g. two tabs), so a second one is refused.
     private final Set<String> busySessions = ConcurrentHashMap.newKeySet();
 
-    public ChatController(ChatClient chatClient, ToolCallbackProvider mcpTools) {
+    public ChatController(ChatClient chatClient, ToolCallbackProvider mcpTools, MarkdownRenderer markdown) {
         this.chatClient = chatClient;
         this.mcpTools = mcpTools;
+        this.markdown = markdown;
     }
 
     @GetMapping("/")
@@ -73,7 +75,7 @@ public class ChatController {
                     .call()
                     .content();
 
-            return new ChatResponse(answer, List.copyOf(calls));
+            return new ChatResponse(markdown.toHtml(answer), List.copyOf(calls));
         } finally {
             busySessions.remove(session.getId());
         }

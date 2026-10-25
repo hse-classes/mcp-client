@@ -83,7 +83,9 @@ form.addEventListener('submit', async (event) => {
       throw new Error(known[response.status] || 'Fehler (' + response.status + ').');
     }
     const data = await response.json();
-    pending.textContent = data.answer;
+    // answerHtml is rendered server-side from Markdown with raw HTML escaped.
+    pending.innerHTML = data.answerHtml;
+    pending.classList.add('md');
     if (data.toolCalls.length) document.getElementById('calls-hint')?.remove();
     data.toolCalls.forEach(addCall);
   } catch (error) {
