@@ -3,23 +3,22 @@ spring:
     name: mcp-client
   main:
     web-application-type: none
-  shell:
-    interactive:
-      enabled: true
+    # Banner and startup logs would drown out the console chat.
+    banner-mode: off
   ai:
-    openai:
-      api-key: ${GEMINI_API_KEY}
-      base-url: https://generativelanguage.googleapis.com/v1beta/openai/
-      chat:
-        options:
-          model: gemini-2.5-flash
-          temperature: 0.7
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+        chat:
+          model: gemini-3.6-flash
     mcp:
       client:
-        sse:
+        streamable-http:
           connections:
             student-server:
               url: http://localhost:8080
+              # Must match the server's endpoint (default: /mcp).
+              endpoint: /mcp
 logging:
   level:
     kmo.dev: DEBUG
