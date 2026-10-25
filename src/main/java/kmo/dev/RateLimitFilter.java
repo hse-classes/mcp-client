@@ -26,7 +26,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        RateLimiter limiter = switch (request.getRequestURI()) {
+        // Servlet path, not getRequestURI(): the container has already decoded it, so
+        // /api/%63hat and /%6cogin cannot slip past the match below.
+        String path = request.getServletPath() + (request.getPathInfo() == null ? "" : request.getPathInfo());
+        RateLimiter limiter = switch (path) {
             case "/login" -> loginLimiter;
             case "/api/chat" -> chatLimiter;
             default -> null;

@@ -79,7 +79,8 @@ form.addEventListener('submit', async (event) => {
       body: JSON.stringify({message: text})
     });
     if (!response.ok) {
-      throw new Error(response.status === 429 ? 'Zu viele Anfragen, bitte kurz warten.' : 'Fehler (' + response.status + ').');
+      const known = {429: 'Zu viele Anfragen, bitte kurz warten.', 409: 'Die vorherige Frage wird noch beantwortet.'};
+      throw new Error(known[response.status] || 'Fehler (' + response.status + ').');
     }
     const data = await response.json();
     pending.textContent = data.answer;

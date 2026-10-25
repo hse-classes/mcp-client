@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.servlet.http.HttpSession;
 import kmo.dev.RecordingToolCallback.ToolCall;
@@ -32,6 +34,9 @@ public class ChatController {
 
     private final ChatClient chatClient;
     private final ToolCallbackProvider mcpTools;
+    // Sessions with a question still being answered. The chat memory is not safe for
+    // two overlapping turns of one conversation (e.g. two tabs), so a second one is refused.
+    private final Set<String> busySessions = ConcurrentHashMap.newKeySet();
 
     public ChatController(ChatClient chatClient, ToolCallbackProvider mcpTools) {
         this.chatClient = chatClient;
@@ -52,18 +57,25 @@ public class ChatController {
                     "Nachricht muss zwischen 1 und " + MAX_MESSAGE_LENGTH + " Zeichen lang sein.");
         }
 
-        List<ToolCall> calls = Collections.synchronizedList(new ArrayList<>());
-        ToolCallback[] tools = Arrays.stream(mcpTools.getToolCallbacks())
-                .map(tool -> (ToolCallback) new RecordingToolCallback(tool, calls))
-                .toArray(ToolCallback[]::new);
+        if (!busySessions.add(session.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Die vorherige Frage wird noch beantwortet.");
+        }
+        try {
+            List<ToolCall> calls = Collections.synchronizedList(new ArrayList<>());
+            ToolCallback[] tools = Arrays.stream(mcpTools.getToolCallbacks())
+                    .map(tool -> (ToolCallback) new RecordingToolCallback(tool, calls))
+                    .toArray(ToolCallback[]::new);
 
-        String answer = chatClient.prompt()
-                .user(message)
-                .toolCallbacks(tools)
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, session.getId()))
-                .call()
-                .content();
+            String answer = chatClient.prompt()
+                    .user(message)
+                    .toolCallbacks(tools)
+                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, session.getId()))
+                    .call()
+                    .content();
 
-        return new ChatResponse(answer, List.copyOf(calls));
+            return new ChatResponse(answer, List.copyOf(calls));
+        } finally {
+            busySessions.remove(session.getId());
+        }
     }
 }
