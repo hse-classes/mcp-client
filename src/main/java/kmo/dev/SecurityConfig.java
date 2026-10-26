@@ -24,7 +24,13 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/style.css").permitAll()
                         .anyRequest().authenticated())
-                .formLogin(form -> form.loginPage("/login").permitAll())
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        // Always land on "/": otherwise Spring Security redirects to the last
+                        // unauthenticated request, which a browser may make to something like
+                        // /apple-touch-icon.png while loading the login page (404 after login).
+                        .defaultSuccessUrl("/", true)
+                        .permitAll())
                 .logout(logout -> logout.logoutSuccessUrl("/login?logout").permitAll())
                 // Inside the security chain (not a plain servlet filter), otherwise /login is
                 // answered by Spring Security before the limiter ever sees it. Before CsrfFilter so rejected requests count too.
